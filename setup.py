@@ -17,7 +17,7 @@ def setup_path():
     build_lib = os.path.join("build", "lib"+plat_specifier)
     sys.path.insert(0, build_lib)
 
-nacl_module = Extension('nacl._tweetnacl',
+nacl_module = Extension('tweetnacl._tweetnacl',
                         ["tweetnaclmodule.c", "tweetnacl.c", "randombytes.c"],
                         extra_compile_args=["-O2",
                                             "-funroll-loops",

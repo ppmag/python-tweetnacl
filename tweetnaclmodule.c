@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include "tweetnacl.h"
 
+#define crypto_sign_SEEDBYTES  32
+
 #if PY_VERSION_HEX < 0x02060000
 #define PyBytes_FromStringAndSize PyString_FromStringAndSize
 #define PyBytes_AS_STRING PyString_AS_STRING
@@ -15,6 +17,7 @@
 #if PY_VERSION_HEX < 0x02050000
 typedef int Py_ssize_t;
 #endif
+
 
 #if PY_MAJOR_VERSION < 2
 void PyModule_AddIntConstant(PyObject *m, const char *name, long value) {
@@ -535,7 +538,8 @@ PyObject *pycrypto_sign_keypair(PyObject *self) {
 
     crypto_sign_keypair(
         (unsigned char *)PyBytes_AS_STRING(pypk),
-        (unsigned char *)PyBytes_AS_STRING(pysk)
+        (unsigned char *)PyBytes_AS_STRING(pysk),
+        0 /* seeded == 0 mean need internally generate random kay in 'sk' */
     );
 
     return ret;
@@ -551,6 +555,56 @@ and that pk has crypto_sign_PUBLICKEYBYTES bytes.\n\
 This uses Ed25519.\n\
 ";
 
+/* API: (pk,sk) = crypto_sign_seed_keypair(seed); */
+PyObject *pycrypto_sign_seed_keypair(PyObject *self, PyObject *args, PyObject *kw) {
+
+    const unsigned char *seed;
+    Py_ssize_t ssize = 0;
+    static const char *kwlist[] = {"seed", 0};
+    PyObject *pypk, *pysk, *ret;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kw,
+                                     "|s#:crypto_sign_seed_keypair",
+                                     (char **)kwlist,
+                                     (char **)&seed, &ssize)) {
+        return (PyObject *)0;
+    }
+
+    if (!seed || ssize != crypto_sign_SEEDBYTES)
+        return (PyObject *)0;
+
+    pypk = PyBytes_FromStringAndSize((char *)0, crypto_sign_PUBLICKEYBYTES);
+    if (!pypk) return (PyObject *)0;
+
+    pysk = PyBytes_FromStringAndSize((char *)seed, crypto_sign_SECRETKEYBYTES);
+    if (!pysk) {
+        Py_DECREF(pypk);
+        return (PyObject *)0;
+    }
+    ret = PyTuple_New(2);
+    if (!ret) {
+        Py_DECREF(pypk);
+        Py_DECREF(pysk);
+        return (PyObject *)0;
+    }
+    PyTuple_SET_ITEM(ret, 0, pypk);
+    PyTuple_SET_ITEM(ret, 1, pysk);
+
+    crypto_sign_keypair(
+        (unsigned char *)PyBytes_AS_STRING(pypk),
+        (unsigned char *)PyBytes_AS_STRING(pysk),
+        1 /* seeded == 1 means NO need internally to generate random key in 'sk' */
+    );
+
+
+    return ret;
+}
+
+const char pycrypto_sign_seed_keypair__doc__[]=
+"crypto_sign_seed_keypair(seed) -> (pk,sk)\n\n\
+Deterministically derive key pair from seed.\n\
+Size of seed must be crypto_sign_SEEDBYTES (32 bytes)\n\
+";
 
 /* API: c = crypto_secretbox(m,n,k); */
 PyObject *pycrypto_secretbox(PyObject *self, PyObject *args, PyObject *kw) {
@@ -1032,6 +1086,7 @@ static PyMethodDef nacl_methods[] = {
     {"crypto_sign", (PyCFunction)pycrypto_sign, METH_VARARGS | METH_KEYWORDS, pycrypto_sign__doc__},
     {"crypto_sign_open", (PyCFunction)pycrypto_sign_open, METH_VARARGS | METH_KEYWORDS, pycrypto_sign_open__doc__},
     {"crypto_sign_keypair", (PyCFunction)pycrypto_sign_keypair, METH_VARARGS | METH_KEYWORDS, pycrypto_sign_keypair__doc__},
+    {"crypto_sign_seed_keypair", (PyCFunction)pycrypto_sign_seed_keypair, METH_VARARGS | METH_KEYWORDS, pycrypto_sign_seed_keypair__doc__},
     {"crypto_secretbox", (PyCFunction)pycrypto_secretbox, METH_VARARGS | METH_KEYWORDS, pycrypto_secretbox__doc__},
     {"crypto_secretbox_open", (PyCFunction)pycrypto_secretbox_open, METH_VARARGS | METH_KEYWORDS, pycrypto_secretbox_open__doc__},
     {"crypto_box", (PyCFunction)pycrypto_box, METH_VARARGS | METH_KEYWORDS, pycrypto_box__doc__},
@@ -1091,6 +1146,8 @@ void add_constants(PyObject *m) {
     PyModule_AddIntConstant(m, "crypto_box_NONCEBYTES", crypto_box_NONCEBYTES);
     PyModule_AddIntConstant(m, "crypto_box_ZEROBYTES", crypto_box_ZEROBYTES);
     PyModule_AddIntConstant(m, "crypto_box_BOXZEROBYTES", crypto_box_BOXZEROBYTES);
+
+    PyModule_AddIntConstant(m, "crypto_sign_SEEDBYTES", crypto_sign_SEEDBYTES);
     return;
 }
 

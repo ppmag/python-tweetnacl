@@ -113,7 +113,7 @@ class Speed(Test):
 
 
 setup (name = 'tweetnacl',
-       version = '0.2',
+       version = '0.0.3',
        author      = "Brian Warner, Jan Mojžíš, Alexander Reshniuk",
        description = """Python wrapper for TweetNaCl""",
        ext_modules = [nacl_module],

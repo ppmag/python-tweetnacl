@@ -1,12 +1,11 @@
 # Python-TweetNaCl
-
-Update: 
-
 Original repo location: https://github.com/warner/python-tweetnacl
 
-This repo goal is to add extra API calls for deterministic key derivation from specified 'seed' bytearray. 
+This forked repo's goal is to add extra API calls for deterministic key derivation from specified 'seed' bytearray: 
+  * `pk,sk = crypto_sign_seed_keypair(seed)`
 
-Note: you probably don't want to use this. Use [pynacl](https://github.com/pyca/pynacl) instead, which has more features and is better-maintained.
+
+Note: you probably don't want to use this. Use [pynacl](https://github.com/pyca/pynacl) instead, which has more features, about x10 times faster and is better-maintained.
 
 This is a python binding to the "[tweetnacl](http://tweetnacl.cr.yp.to/)" cryptography library, by djb and others. The binding was originally written by Jan Mojžíš, downloaded from http://mojzis.com/software/python-tweetnacl/index.html . It was further modified by Brian Warner.
 
